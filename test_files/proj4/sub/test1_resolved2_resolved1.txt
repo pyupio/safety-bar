@@ -1,0 +1,71 @@
+django>=1.6,<1.7
+django-jenkins
+django-admin-honeypot
+
+psycopg2
+argparse==1.2.1
+wsgiref==0.1.2
+south
+python-stdnum
+pillow
+mechanize
+lxml
+suds
+requests
+xmltodict
+django-registration
+django-bootstrap-form
+django-dajax
+django-extensions
+django-braces
+pytz==2013b
+django-celery
+raven
+
+python-dateutil
+mock
+#django-debug-toolbar
+unipath
+newrelic
+django_compressor
+django-htmlmin
+BeautifulSoup<4.0
+html5lib
+slimit
+django-subdomains
+django-secure
+djangorestframework
+django-cors-headers
+pep8
+pyflakes
+flake8
+jsonfield
+pyrelic
+
+mailchimp==2.0.7
+django-ajax-selects
+django-filter
+
+#add to /etc/apt/sources.list
+#deb http://www.rabbitmq.com/debian/ testing main
+
+#add keys
+#wget http://www.rabbitmq.com/rabbitmq-signing-key-public.asc
+#apt-key add rabbitmq-signing-key-public.asc
+
+#install
+#apt-get install rabbitmq-server
+
+paymill
+django-paymill
+
+django-longerusernameandemail
+django-debug-panel
+django-loginas
+django-axes
+#pylibmc
+djrill
+djrillcelery
+hiredis
+django-redis-cache
+django-updater
