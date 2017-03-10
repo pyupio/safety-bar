@@ -1,2 +1,3 @@
-rumps
+-e git+https://github.com/jaredks/rumps.git#egg=rumps
 safety
+pyobjc==3.2.1
