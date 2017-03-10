@@ -34,7 +34,7 @@ class RequirementFile(object):
     def check(self):
         # todo: remove sleep here. This is to show that the main loop hangs when updating the UI
         import time
-        time.sleep(2)
+        time.sleep(0.2)
         vulns = check(self.requirements)
         if vulns:
             self.menu_item.icon = ICONS.RED
