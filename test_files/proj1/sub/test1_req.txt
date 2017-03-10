@@ -1,0 +1,5 @@
+-r test1_resolved1.txt
+-r test1_resolved2.txt
+-r test1_resolved3.txt
+
+django==1.10.8
