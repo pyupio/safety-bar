@@ -25,6 +25,12 @@ from safety.util import (
 from preference import PreferenceController, PreferenceSetting
 
 
+# icons come bundled with the binary
+try:
+    ROOT = sys._MEIPASS
+except AttributeError:
+    ROOT = os.path.dirname(os.path.realpath(__file__))
+
 DEBUG = True
 
 if DEBUG:
@@ -34,11 +40,6 @@ else:
     def log(_):
         pass
 
-try:
-    ROOT = sys._MEIPASS
-except AttributeError:
-    ROOT = os.path.dirname(os.path.realpath(__file__))
-log(ROOT)
 
 class UIHelper(NSObject):
     '''
