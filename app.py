@@ -66,7 +66,7 @@ class UIHelper(NSObject):
         separator_key = 'separator_1'
         if separator_key not in self._app.menu.keys():
             # Add separator
-            self._app.menu.insert_before('Preference', rumps.separator)
+            self._app.menu.insert_before('Preferences', rumps.separator)
 
         if menu_item.key not in self._app.menu.keys():
             # Add directory
@@ -218,8 +218,8 @@ class PyupStatusBarApp(rumps.App):
         # Load the settings from file
         self.reloadSettings()
 
-    @rumps.clicked('Preference')
-    def preference(self, _):
+    @rumps.clicked('Preferences')
+    def preferences(self, _):
         if 'prefController' not in self.__dict__:
             # Initialize preference window
             rect = NSMakeRect(0, 0, 500, 500)
