@@ -1,10 +1,71 @@
-import rumps
-from rumps import MenuItem
+# -*- coding: utf-8 -*-
 import os
+import objc
+import rumps
 import subprocess
+import threading
+
+from Cocoa import NSObject
+from rumps import MenuItem
+from Foundation import NSLog, NSMakeRect
+from AppKit import (
+    NSWindow,
+    NSBackingStoreBuffered,
+    NSTitledWindowMask,
+    NSClosableWindowMask,
+)
 
 from safety.safety import check
-from safety.util import read_requirements, Package as SafetyPackage, RequirementFile as SafetyRequirementFile
+from safety.util import (
+    read_requirements,
+    Package as SafetyPackage,
+    RequirementFile as SafetyRequirementFile
+)
+from preference import PreferenceController, PreferenceSetting
+
+
+DEBUG = True
+
+if DEBUG:
+    def log(message):
+        NSLog(message)
+else:
+    def log(_):
+        pass
+
+
+class UIHelper(NSObject):
+    '''
+    A helper to interact with UI, eg UI update
+    '''
+    def initWithApp_(self, app):
+        '''
+        Init Helper with rumps app instance
+        interpret as Objc selector: initWithApp:
+        '''
+        self = objc.super(UIHelper, self).init()
+        if self is None:
+            return None
+        self._app = app
+        self.add = 0
+        return self
+
+    def updateMenuItem_(self, menu_item):
+        '''
+        Update the menu item
+        :param menu_item  The menu item to be added to menu
+        '''
+        separator_key = 'separator_1'
+        if separator_key not in self._app.menu.keys():
+            # Add separator
+            self._app.menu.insert_before('Preference', rumps.separator)
+
+        if menu_item.key not in self._app.menu.keys():
+            # Add directory
+            self._app.menu.insert_before(separator_key, menu_item)
+        else:
+            self._app.menu.update(menu_item)
+
 
 class ICONS:
     GRAY = 'icons/gray.png'
@@ -28,13 +89,9 @@ class RequirementFile(object):
         self.requirements = requirements
 
     def clicked(self, sender):
-        # todo: is there a way to open natively?
         subprocess.call(['open', self.path])
 
     def check(self):
-        # todo: remove sleep here. This is to show that the main loop hangs when updating the UI
-        import time
-        time.sleep(0.2)
         vulns = check(self.requirements)
         if vulns:
             self.menu_item.icon = ICONS.RED
@@ -59,6 +116,7 @@ class Project(object):
         )
 
         self.requirement_files = None
+        self.ui_helper = UIHelper.alloc().initWithApp_(app)
 
     @property
     def is_valid(self):
@@ -91,7 +149,7 @@ class Project(object):
                             requirements=reqs,
                             path=file_name
                         )
-            except FileNotFoundError:
+            except:
                 pass
 
         for item in os.listdir(self.path):
@@ -122,14 +180,14 @@ class Project(object):
             self.menu_item.icon = ICONS.GREEN
 
     def add(self):
-        # todo: when adding the menu item, add it before the seperator, ideally ordered by path
         self.menu_item.update(
             [r.menu_item for r in self.requirement_files]
         )
-        self.app.menu.update(self.menu_item)
+
+        # self.app.menu.update(self.menu_item)
+        self.ui_helper.pyobjc_performSelectorOnMainThread_withObject_('updateMenuItem:', self.menu_item)
 
     def clicked(self, sender):
-        # todo: is there a way to open natively?
         subprocess.call(['open', self.path])
 
     def __eq__(self, other):
@@ -147,31 +205,28 @@ class PyupStatusBarApp(rumps.App):
             name="pyup",
         )
 
-        # todo: these settings need to go into a preference window
-        self.settings = {
-            'paths': [
-                os.path.join(
-                    os.path.dirname(os.path.realpath(__file__)),
-                    'test_files'
-                )
-                 # todo: during testing, replace this with an actual dir that holds the data
-            ],
-            'depth': 1,
-            'key': ''
-        }
-
         self.projects = []
 
-        # todo:
-        # build up the menu bar here
-        # [ room for projects ]
-        # --------------------- </ separator
-        # Preferences
-        # Quit
+        # Load the settings from file
+        self.reloadSettings()
 
-    # todo: this needs to be non blocking
-    @rumps.timer(60 * 60)  # run every hour
-    def sync(self, sender):
+    @rumps.clicked('Preference')
+    def preference(self, _):
+        if 'prefController' not in self.__dict__:
+            # Initialize preference window
+            rect = NSMakeRect(0, 0, 500, 500)
+            window = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
+                rect,
+                NSTitledWindowMask | NSClosableWindowMask,
+                NSBackingStoreBuffered,
+                False)
+            window.center()
+            self.prefController = PreferenceController.alloc().initWithWindow_(window)
+            self.prefController.setSettingChangedCallback_withArgs_(self.reloadSettings, [])
+        self.prefController.showWindow_(self)
+
+    def sync(self):
+        log('Sync Thread {} is about to run...'.format(threading.current_thread().name))
         if self.icon is None:
             self.icon = ICONS.GRAY
         try:
@@ -181,7 +236,7 @@ class PyupStatusBarApp(rumps.App):
                     full_path = os.path.join(path, item)
                     if os.path.isdir(full_path):
                         project = Project(self, full_path)
-                        print("have", full_path)
+                        log("have {}".format(full_path))
                         if project not in self.projects:
                             self.projects.append(project)
                             if project.needs_check:
@@ -194,9 +249,25 @@ class PyupStatusBarApp(rumps.App):
                 self.icon = ICONS.RED
             else:
                 self.icon = ICONS.GREEN
+
+            log('Sync Thread {} run finished.'.format(threading.current_thread().name))
         except:
             import traceback
             traceback.print_exc()
+
+    @rumps.timer(60 * 60)  # run every hour
+    def refresh(self, _):
+        t = threading.Thread(target=self.sync, name='SyncThread')
+        t.start()
+
+    def reloadSettings(self, *args):
+        self.settings = {
+            'paths': PreferenceSetting.loadPathSettings(),
+            'depth': 1,
+            'key': ''
+        }
+        log('Setting is reloaed')
+
 
 if __name__ == "__main__":
     PyupStatusBarApp().run(
