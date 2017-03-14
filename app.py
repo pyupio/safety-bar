@@ -24,6 +24,7 @@ from safety.util import (
 )
 from preference import PreferenceController, PreferenceSetting
 
+__version__ = "0.1"
 
 # icons come bundled with the binary
 try:
