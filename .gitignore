@@ -2,3 +2,6 @@
 .venv
 *.pyc
 __pycache__/
+build
+dist
+app-skeleton/safetybar.app/Contents/MacOS/safetybar

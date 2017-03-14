@@ -4,6 +4,7 @@ import objc
 import rumps
 import subprocess
 import threading
+import sys
 
 from Cocoa import NSObject
 from rumps import MenuItem
@@ -33,6 +34,11 @@ else:
     def log(_):
         pass
 
+try:
+    ROOT = sys._MEIPASS
+except AttributeError:
+    ROOT = os.path.dirname(os.path.realpath(__file__))
+log(ROOT)
 
 class UIHelper(NSObject):
     '''
@@ -68,9 +74,9 @@ class UIHelper(NSObject):
 
 
 class ICONS:
-    GRAY = 'icons/gray.png'
-    GREEN = 'icons/green.png'
-    RED = 'icons/red.png'
+    GRAY = os.path.join(ROOT, 'icons/gray.png')
+    GREEN = os.path.join(ROOT, 'icons/green.png')
+    RED = os.path.join(ROOT, 'icons/red.png')
 
 
 class RequirementFile(object):
