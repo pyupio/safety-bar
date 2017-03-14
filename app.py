@@ -271,8 +271,8 @@ class PyupStatusBarApp(rumps.App):
     def reloadSettings(self, *args):
         self.settings = {
             'paths': PreferenceSetting.loadPathSettings(),
-            'depth': 1,
-            'key': ''
+            'api_key': '',
+            'run_on_startup': ''
         }
         log('Setting is reloaed')
 
