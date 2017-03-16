@@ -9,26 +9,33 @@ python app.py
 
 ## Setting file:
 
-The preference will be loaded from current user home directory, and the settings is saved in JSON format:
+The preference will be loaded from the `menubar` directory, and the settings is saved in JSON format:
 
 ```
-~/.pyupconfig
+<your menubar directory>/.pyupconfig
 ```
 
 Example:
 
 ```json
-[
-    {"path":"/Users/enix/Source/python/menubar","enable":false,"depth":1},    
-    {"path":"/Users/enix/Source/python/menubar/test_files","enable":true,"depth":1}
-]
+{
+    "startup": true,
+    "api_key": "Your API Key",
+    "paths": [
+        {"path":"/Users/enix/Source/python/menubar","enable":false,"depth":1},    
+        {"path":"/Users/enix/Source/python/menubar/test_files","enable":true,"depth":1}
+    ]
+}
 ```
 
 Fields:
 
-1. path,  The directory path to be monitor
-2. enable, A flag to indicate this path is active or not, if enable = false, the program will ignore this record, and dependencies will not be checked.
-3. depth, Reseved for directory depth search, not used currently.
+1. startup:  If true, then the app will be run with the system.
+2. api_key:  The API key
+3. paths dictionary:
+    * path,  The directory path to be monitor
+    * enable, A flag to indicate this path is active or not, if enable = false, the program will ignore this record, and dependencies will not be checked.
+    * depth, Reseved for directory depth search, not used currently.
 
 For example above, `menubar` directory is temporately disabled, so program will  ignore it, and `test_files` is active, so its dependencies will be check every hour.
 
