@@ -9,10 +9,12 @@ from Cocoa import NSObject
 from rumps import MenuItem
 from Foundation import NSLog, NSMakeRect
 from AppKit import (
+    NSApp,
     NSWindow,
-    NSBackingStoreBuffered,
     NSTitledWindowMask,
     NSClosableWindowMask,
+    NSBackingStoreBuffered,
+    NSScreenSaverWindowLevel,
 )
 
 from safety.safety import check
@@ -23,7 +25,14 @@ from safety.util import (
 )
 from preference import PreferenceController, PreferenceSetting
 
+# ------------------------------- #
+#           Settings              #
+# ------------------------------- #
 
+LAUNCH_TEMPLATE_FILE = 'launch.template.plist'
+BUNDLE_ID = 'com.safetyapp.menubar'
+DEAMON_TEMPLATE_FILE = 'deamon.template.sh'
+DEAMON_FILE = 'deamon.sh'
 DEBUG = True
 
 if DEBUG:
@@ -117,6 +126,8 @@ class Project(object):
 
         self.requirement_files = None
         self.ui_helper = UIHelper.alloc().initWithApp_(app)
+
+        NSApp.activateIgnoringOtherApps_(True)
 
     @property
     def is_valid(self):
@@ -220,10 +231,16 @@ class PyupStatusBarApp(rumps.App):
                 NSTitledWindowMask | NSClosableWindowMask,
                 NSBackingStoreBuffered,
                 False)
+            window.setTitle_('Preference')
             window.center()
             self.prefController = PreferenceController.alloc().initWithWindow_(window)
+            self.prefController.window().makeKeyWindow()
+            # self.prefController.window().setLevel_(NSFloatingWindowLevel)
+            self.prefController.window().orderFront_(self)
             self.prefController.setSettingChangedCallback_withArgs_(self.reloadSettings, [])
-        self.prefController.showWindow_(self)
+
+        if not self.prefController.window().isVisible():
+            self.prefController.window().makeKeyAndOrderFront_(self)
 
     def sync(self):
         log('Sync Thread {} is about to run...'.format(threading.current_thread().name))
@@ -261,12 +278,40 @@ class PyupStatusBarApp(rumps.App):
         t.start()
 
     def reloadSettings(self, *args):
+        settings = PreferenceSetting.loadPathSettings()
         self.settings = {
-            'paths': PreferenceSetting.loadPathSettings(),
+            'paths': tuple(settings['paths']),
             'depth': 1,
-            'key': ''
+            'key': str(settings['api_key']),
+            'startup': settings['startup'],
         }
         log('Setting is reloaed')
+
+        # Change the startup setting
+        self.startupLaunchSetup(self.settings['startup'])
+
+    def startupLaunchSetup(self, enable):
+        home = os.path.expanduser("~")
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        launch_dir = os.path.join(home, 'Library/LaunchAgents')
+        if enable:
+            # Setup startup launch
+            with open(LAUNCH_TEMPLATE_FILE, 'rb') as f:
+                with open('{}/{}.plist'.format(launch_dir, BUNDLE_ID), 'w') as w:
+                    content = f.read().format(dir=script_dir, deamon=DEAMON_FILE)
+                    w.write(content)
+
+            # Create deamon script file
+            with open(DEAMON_TEMPLATE_FILE, 'rb') as f:
+                with open(DEAMON_FILE, 'wb') as w:
+                    content = f.read().format(dir=script_dir)
+                    w.write(content)
+        else:
+            # Disable startup launch
+            try:
+                os.remove('{}/{}.plist'.format(launch_dir, BUNDLE_ID))
+            except OSError:
+                pass
 
 
 if __name__ == "__main__":

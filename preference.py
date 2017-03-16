@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import os
 import objc
 from Cocoa import NSObject
 from Foundation import (
@@ -9,11 +9,10 @@ from Foundation import (
     NSPredicate,
     NSFileManager,
     NSMutableArray,
-    NSHomeDirectory,
-    NSJSONSerialization
+    NSJSONSerialization,
+    NSMutableDictionary,
 )
 from AppKit import (
-    NSApp,
     NSView,
     NSFont,
     NSAlert,
@@ -55,7 +54,8 @@ class PreferenceSetting(NSObject):
         Get the setting file absolute path
         :return The path for the setting file
         '''
-        return NSHomeDirectory().stringByAppendingPathComponent_(".pyupconfig")
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        return os.path.join(script_dir, ".pyupconfig")
 
     @classmethod
     def loadPathSettings(cls):
@@ -67,8 +67,11 @@ class PreferenceSetting(NSObject):
         # Filter the directory when enable
         pred = NSPredicate.predicateWithFormat_("enable == 1")
         # Retrieve active path array
-        paths = settings.filteredArrayUsingPredicate_(pred).valueForKeyPath_("path")
-        return tuple(paths)
+        paths = settings['paths'].filteredArrayUsingPredicate_(pred).valueForKeyPath_("path")
+
+        settings['paths'] = paths
+
+        return settings
 
     @classmethod
     def load(cls):
@@ -78,13 +81,21 @@ class PreferenceSetting(NSObject):
         '''
         settingPath = cls.settingPath()
         fm = NSFileManager.defaultManager()
-        settings = NSMutableArray.array()
+        paths = NSMutableArray.array()
+        settings = NSMutableDictionary.dictionary()
         if fm.fileExistsAtPath_isDirectory_(settingPath, None)[0]:
             settingFile = NSData.dataWithContentsOfFile_(settingPath)
-            jsonData = NSJSONSerialization.JSONObjectWithData_options_error_(settingFile, 0, None)
-            for item in jsonData[0]:
+            jsonData = NSJSONSerialization.JSONObjectWithData_options_error_(settingFile, 0, None)[0]
+            settings['startup'] = jsonData['startup']
+            settings['api_key'] = jsonData['api_key']
+            for item in jsonData['paths']:
                 directory = Directory.alloc().initWithDict_(item)
-                settings.addObject_(directory)
+                paths.addObject_(directory)
+            settings['paths'] = paths
+        else:
+            settings['startup'] = True
+            settings['api_key'] = ''
+            settings['paths'] = paths
         return settings
 
 
@@ -124,7 +135,7 @@ class PreferenceController(NSWindowController):
         '''
         self.settingPath = PreferenceSetting.settingPath()
         settings = PreferenceSetting.load()
-        self.data = NSMutableArray.arrayWithArray_(settings)
+        self.data = NSMutableDictionary.dictionaryWithDictionary_(settings)
 
     def _setupContentView(self):
         # ------------------------------------------ #
@@ -133,13 +144,86 @@ class PreferenceController(NSWindowController):
         rect = NSMakeRect(0, 0, self.WIDTH, self.HEIGHT)
         containerView = NSView.alloc().initWithFrame_(rect)
 
+        # Startup btn
+        height = 20
         margin = 20
-        rect = NSMakeRect(margin, 2 * margin, self.WIDTH - 2 * margin, self.HEIGHT - 6 * margin)
+        width = self.WIDTH - 2 * margin
+        self.startupBtn = NSButton.buttonWithTitle_target_action_("Run safetyapp on startup", self, "startupDidChanged:")
+        self.startupBtn.setButtonType_(NSButtonTypeSwitch)
+        self.startupBtn.setFrame_(NSMakeRect(margin, self.HEIGHT - 2 * height, width, height))
+        self.startupBtn.setState_(self.data["startup"])
+        containerView.addSubview_(self.startupBtn)
+
+        # API Key settings
+        titleLabel = NSTextField.labelWithString_("API Key")
+        titleLabel.setTextColor_(NSColor.blackColor())
+        rect = NSMakeRect(self.startupBtn.frame().origin.x, self.startupBtn.frame().origin.y - self.startupBtn.frame().size.height - height, width, height)
+        titleLabel.setFrame_(rect)
+        titleLabel.setFont_(NSFont.boldSystemFontOfSize_(14))
+        containerView.addSubview_(titleLabel)
+
+        # API Key Sub-label
+        titleSubLabel = NSTextField.labelWithString_("Lorem lpsum dolor sit amet")
+        titleSubLabel.setTextColor_(NSColor.blackColor())
+        rect = NSMakeRect(titleLabel.frame().origin.x, titleLabel.frame().origin.y - titleLabel.frame().size.height - height / 2, width, height)
+        titleSubLabel.setFrame_(rect)
+        titleSubLabel.setFont_(NSFont.systemFontOfSize_(14))
+        containerView.addSubview_(titleSubLabel)
+
+        # API Key text field
+        self.apiTextField = NSTextField.textFieldWithString_("")
+        rect = NSMakeRect(titleSubLabel.frame().origin.x, titleSubLabel.frame().origin.y - titleSubLabel.frame().size.height - height / 2, width, 1.2 * height)
+        self.apiTextField.setFrame_(rect)
+        self.apiTextField.setFocusRingType_(NSFocusRingTypeNone)
+        self.apiTextField.setTitleWithMnemonic_(self.data["api_key"])
+        self.apiTextField.setEditable_(True)
+        containerView.addSubview_(self.apiTextField)
+        self.window().makeFirstResponder_(self.apiTextField)
+
+        # Table title
+        tableTitleLabel = NSTextField.labelWithString_("Directories")
+        tableTitleLabel.setTextColor_(NSColor.blackColor())
+        rect = NSMakeRect(self.apiTextField.frame().origin.x, self.apiTextField.frame().origin.y - self.apiTextField.frame().size.height - height, width, height)
+        tableTitleLabel.setFrame_(rect)
+        tableTitleLabel.setFont_(NSFont.boldSystemFontOfSize_(14))
+        containerView.addSubview_(tableTitleLabel)
+
+        # Table sub-title
+        tableSubTitleLabel = NSTextField.labelWithString_("Lorem lpsum dolor sit amet")
+        tableSubTitleLabel.setTextColor_(NSColor.blackColor())
+        rect = NSMakeRect(tableTitleLabel.frame().origin.x, tableTitleLabel.frame().origin.y - tableTitleLabel.frame().size.height - height / 2, width, height)
+        tableSubTitleLabel.setFrame_(rect)
+        tableSubTitleLabel.setFont_(NSFont.systemFontOfSize_(14))
+        containerView.addSubview_(tableSubTitleLabel)
+
+        # ------------------------------------------ #
+        #               Toolbar button               #
+        # ------------------------------------------ #
+        rect = NSMakeRect(20, 20, 67, 21)
+        segControl = NSSegmentedControl.alloc().initWithFrame_(rect)
+        segControl.setSegmentCount_(2)
+        segControl.setSegmentStyle_(NSSegmentStyleSmallSquare)
+        segControl.setWidth_forSegment_(32, 0)
+        segControl.setWidth_forSegment_(32, 1)
+        segControl.setImage_forSegment_(NSImage.imageNamed_(NSImageNameAddTemplate), 0)
+        segControl.setImage_forSegment_(NSImage.imageNamed_(NSImageNameRemoveTemplate), 1)
+        segControl.setTarget_(self)
+        segControl.setAction_("segControlDidClicked:")
+        containerView.addSubview_(segControl)
+
+        rect = NSMakeRect(86, 21, self.WIDTH - 2 * margin - rect.size.width + 1, 21)
+        toolbar = NSButton.alloc().initWithFrame_(rect)
+        toolbar.setTitle_("")
+        toolbar.setRefusesFirstResponder_(True)
+        toolbar.setBezelStyle_(NSBezelStyleSmallSquare)
+        containerView.addSubview_(toolbar)
+
+        height = tableSubTitleLabel.frame().origin.y - segControl.frame().origin.y - margin - segControl.frame().size.height + 1 + tableSubTitleLabel.frame().size.height / 2
+        rect = NSMakeRect(tableSubTitleLabel.frame().origin.x, tableSubTitleLabel.frame().origin.y - tableSubTitleLabel.frame().size.height / 2 - height, width, height)
         scrollView = NSScrollView.alloc().initWithFrame_(rect)
         scrollView.setBorderType_(NSBezelBorder)
 
-        rect = NSMakeRect(0, 0, self.WIDTH - 2 * margin, self.HEIGHT - 2 * margin)
-        self.tableView = NSTableView.alloc().initWithFrame_(rect)
+        self.tableView = NSTableView.alloc().initWithFrame_(scrollView.bounds())
         self.tableView.setDataSource_(self)
         self.tableView.setDelegate_(self)
         self.tableView.setFocusRingType_(NSFocusRingTypeNone)
@@ -166,47 +250,6 @@ class PreferenceController(NSWindowController):
         self.tableView.addTableColumn_(pathCol)
         self.tableView.addTableColumn_(enableCol)
 
-        # ------------------------------------------ #
-        #               Title label                  #
-        # ------------------------------------------ #
-
-        titleLabel = NSTextField.labelWithString_("Preference")
-        titleLabel.setTextColor_(NSColor.blackColor())
-        titleLabel.setFrame_(NSMakeRect(margin, self.HEIGHT - 1.5 * margin, self.WIDTH - 2 * margin, margin))
-        titleLabel.setFont_(NSFont.boldSystemFontOfSize_(14))
-        containerView.addSubview_(titleLabel)
-
-        label = NSTextField.labelWithString_("The following directories will be check dependencies every 1 hour")
-        label.setTextColor_(NSColor.blackColor())
-        label.setFrame_(NSMakeRect(margin, self.HEIGHT - 3 * margin, self.WIDTH - 2 * margin, margin))
-        label.setFont_(NSFont.systemFontOfSize_(14))
-        containerView.addSubview_(label)
-
-        # ------------------------------------------ #
-        #               Toolbar button               #
-        # ------------------------------------------ #
-        rect = NSMakeRect(20, 20, 67, 21)
-        segControl = NSSegmentedControl.alloc().initWithFrame_(rect)
-        segControl.setSegmentCount_(2)
-        segControl.setSegmentStyle_(NSSegmentStyleSmallSquare)
-        segControl.setWidth_forSegment_(32, 0)
-        segControl.setWidth_forSegment_(32, 1)
-        segControl.setImage_forSegment_(NSImage.imageNamed_(NSImageNameAddTemplate), 0)
-        segControl.setImage_forSegment_(NSImage.imageNamed_(NSImageNameRemoveTemplate), 1)
-        segControl.setTarget_(self)
-
-        segControl.setAction_("segControlDidClicked:")
-
-        containerView.addSubview_(segControl)
-
-        width = self.WIDTH - 2 * margin - rect.size.width + 1
-        rect = NSMakeRect(86, 21, width, 21)
-        toolbar = NSButton.alloc().initWithFrame_(rect)
-        toolbar.setTitle_("")
-        toolbar.setRefusesFirstResponder_(True)
-        toolbar.setBezelStyle_(NSBezelStyleSmallSquare)
-        containerView.addSubview_(toolbar)
-
         scrollView.setDocumentView_(self.tableView)
         scrollView.setHasVerticalScroller_(True)
         containerView.addSubview_(scrollView)
@@ -224,10 +267,12 @@ class PreferenceController(NSWindowController):
         '''
         Save the path setting to setting file
         '''
-        jsonData = NSMutableArray.arrayWithCapacity_(self.data.count())
-        for directory in self.data:
-            jsonData.addObject_(directory.directoryToDict())
+        jsonData = NSMutableDictionary.dictionaryWithDictionary_(self.data)
+        paths = NSMutableArray.array()
+        for directory in self.data['paths']:
+            paths.addObject_(directory.directoryToDict())
 
+        jsonData['paths'] = paths
         data = NSJSONSerialization.dataWithJSONObject_options_error_(jsonData, 0, None)
         if len(data) > 0 and not data[0].writeToFile_atomically_(self.settingPath, True):
             alert = NSAlert.alertWithMessageText_defaultButton_alternateButton_otherButton_informativeTextWithFormat_(
@@ -268,7 +313,7 @@ class PreferenceController(NSWindowController):
             alert.runModal()
         else:
             self.tableView.beginUpdates()
-            self.data.removeObjectAtIndex_(self.tableView.selectedRow())
+            self.data['paths'].removeObjectAtIndex_(self.tableView.selectedRow())
             index = NSIndexSet.indexSetWithIndex_(self.tableView.selectedRow())
             self.tableView.removeRowsAtIndexes_withAnimation_(index, NSTableViewAnimationEffectFade)
             self.tableView.endUpdates()
@@ -287,7 +332,7 @@ class PreferenceController(NSWindowController):
         if panel.runModal() == NSModalResponseOK:
             for url in panel.URLs():
                 pred = NSPredicate.predicateWithFormat_("path == %@", url.path())
-                if self.data.filteredArrayUsingPredicate_(pred).count() > 0:
+                if self.data['paths'].filteredArrayUsingPredicate_(pred).count() > 0:
                     continue
 
                 directory = Directory.alloc().init()
@@ -296,8 +341,8 @@ class PreferenceController(NSWindowController):
                 directory.depth = 1
 
                 self.tableView.beginUpdates()
-                self.data.addObject_(directory)
-                index = NSIndexSet.indexSetWithIndex_(self.data.count() - 1)
+                self.data['paths'].addObject_(directory)
+                index = NSIndexSet.indexSetWithIndex_(self.data['paths'].count() - 1)
                 self.tableView.insertRowsAtIndexes_withAnimation_(index, NSTableViewAnimationSlideUp)
                 self.tableView.endUpdates()
 
@@ -318,10 +363,10 @@ class PreferenceController(NSWindowController):
     # ------------------------------------------------- #
 
     def numberOfRowsInTableView_(self, tableView):
-        return self.data.count()
+        return self.data['paths'].count()
 
     def tableView_objectValueForTableColumn_row_(self, tableView, tableColumn, row):
-        directory = self.data.objectAtIndex_(row)
+        directory = self.data['paths'].objectAtIndex_(row)
         if tableColumn.identifier() == self.PATH_COL_IDENTIFIER:
             return directory.path
         elif tableColumn.identifier() == self.ENALBE_COL_IDENTIFIER:
@@ -330,7 +375,7 @@ class PreferenceController(NSWindowController):
 
     def tableView_setObjectValue_forTableColumn_row_(self, tableView, obj, tableColumn, row):
         if tableColumn.identifier() == self.ENALBE_COL_IDENTIFIER:
-            directory = self.data.objectAtIndex_(row)
+            directory = self.data['paths'].objectAtIndex_(row)
             directory.enable = obj
 
             # Save to file
@@ -340,11 +385,14 @@ class PreferenceController(NSWindowController):
     #                   NSWindowDelegate                #
     # ------------------------------------------------- #
 
-    def showWindow_(self, sender):
-        # Bring the window to the front
-        NSApp.activateIgnoringOtherApps_(True)
-        objc.super(PreferenceController, self).showWindow_(sender)
-
     def windowWillClose_(self, notification):
-        # Bring the window to the back
-        NSApp.activateIgnoringOtherApps_(False)
+        # Save settings when window to be closed
+        self.data["startup"] = False if self.startupBtn.state() == 0 else True
+        self.data["api_key"] = self.apiTextField.stringValue()
+        self.saveSettings()
+
+        # Notify the app to reload settings
+        self.callback(*self.args)
+
+    # def canBecomeKeyWindow(self):
+    #     return True
