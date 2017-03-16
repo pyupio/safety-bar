@@ -1,3 +1,5 @@
+[![safety](https://raw.githubusercontent.com/pyupio/safety/master/safety.png)](https://pyup.io/safety/)
+
 ## Usage:
 
 ```
