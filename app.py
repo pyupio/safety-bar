@@ -4,6 +4,7 @@ import objc
 import rumps
 import subprocess
 import threading
+import sys
 
 from Cocoa import NSObject
 from rumps import MenuItem
@@ -25,9 +26,13 @@ from safety.util import (
 )
 from preference import PreferenceController, PreferenceSetting
 
-# ------------------------------- #
-#           Settings              #
-# ------------------------------- #
+__version__ = "0.1"
+
+# icons come bundled with the binary
+try:
+    ROOT = sys._MEIPASS
+except AttributeError:
+    ROOT = os.path.dirname(os.path.realpath(__file__))
 
 LAUNCH_TEMPLATE_FILE = 'launch.template.plist'
 BUNDLE_ID = 'com.safetyapp.menubar'
@@ -67,7 +72,7 @@ class UIHelper(NSObject):
         separator_key = 'separator_1'
         if separator_key not in self._app.menu.keys():
             # Add separator
-            self._app.menu.insert_before('Preference', rumps.separator)
+            self._app.menu.insert_before('Preferences', rumps.separator)
 
         if menu_item.key not in self._app.menu.keys():
             # Add directory
@@ -77,9 +82,9 @@ class UIHelper(NSObject):
 
 
 class ICONS:
-    GRAY = 'icons/gray.png'
-    GREEN = 'icons/green.png'
-    RED = 'icons/red.png'
+    GRAY = os.path.join(ROOT, 'icons/gray.png')
+    GREEN = os.path.join(ROOT, 'icons/green.png')
+    RED = os.path.join(ROOT, 'icons/red.png')
 
 
 class RequirementFile(object):
@@ -221,8 +226,8 @@ class PyupStatusBarApp(rumps.App):
         # Load the settings from file
         self.reloadSettings()
 
-    @rumps.clicked('Preference')
-    def preference(self, _):
+    @rumps.clicked('Preferences')
+    def preferences(self, _):
         if 'prefController' not in self.__dict__:
             # Initialize preference window
             rect = NSMakeRect(0, 0, 500, 500)
