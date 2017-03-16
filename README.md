@@ -30,12 +30,12 @@ Example:
 
 Fields:
 
-1. startup:  If true, then the app will be start with the system.
+1. startup:  If true, then the app will be run with the system.
 2. api_key:  The API key
 3. paths dictionary:
-    *path,  The directory path to be monitor
-    *enable, A flag to indicate this path is active or not, if enable = false, the program will ignore this record, and dependencies will not be checked.
-    *depth, Reseved for directory depth search, not used currently.
+    * path,  The directory path to be monitor
+    * enable, A flag to indicate this path is active or not, if enable = false, the program will ignore this record, and dependencies will not be checked.
+    * depth, Reseved for directory depth search, not used currently.
 
 For example above, `menubar` directory is temporately disabled, so program will  ignore it, and `test_files` is active, so its dependencies will be check every hour.
 
