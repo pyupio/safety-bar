@@ -1,10 +1,10 @@
-[![safety](https://raw.githubusercontent.com/pyupio/safety/master/safety.png)](https://pyup.io/safety/)
+[![safety](https://raw.githubusercontent.com/pyupio/safety-bar/master/safety-bar.png)](https://pyup.io/safety/)
 
 ## Usage:
 
 ```
-git clone https://github.com/jayfk/menubar.git
-cd menubar
+git clone https://github.com/pyupio/safety-bar.git
+cd safety-bar
 pip install -r requirements.txt
 python app.py
 ```
