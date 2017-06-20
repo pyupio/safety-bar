@@ -1,4 +1,4 @@
-[![safety](https://raw.githubusercontent.com/pyupio/safety-bar/master/safety-bar.png)](https://pyup.io/safety/)
+[![safety](https://raw.githubusercontent.com/pyupio/safety-bar/master/safety-bar.jpg)](https://pyup.io/safety/)
 
 ## Usage:
 
