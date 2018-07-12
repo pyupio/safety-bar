@@ -65,7 +65,7 @@ raven==5.4.4
 
 
 # NewRelic support
-newrelic==2.52.0.40
+newrelic==3.2.2.94
 
 # until streaming fix is merged
 #docker-py==1.3.0
